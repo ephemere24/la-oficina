@@ -546,45 +546,79 @@
     // MUSIC PLAYER - Lofi Hip Hop Radio
     let audio = null;
     let isPlaying = false;
+    let autoPlayStarted = false;
     const musicBtn = document.getElementById('musicBtn');
     
     // Usar stream de lofi radio (Icecast/Shoutcast)
     const lofiStreams = [
-        'https://streams.ilovemusic.de/iloveradio17.mp3',  // I Love Radio
-        'https://stream.zeno.fm/fyn8ehvp2tzuv',  // Lofi Zen
+        'https://streams.ilovemusic.de/iloveradio17.mp3',
+        'https://stream.zeno.fm/fyn8ehvp2tzuv',
     ];
+    
+    function initAudio(){
+        if(!audio){
+            audio = new Audio(lofiStreams[0]);
+            audio.volume = 0.15;
+            audio.crossOrigin = 'anonymous';
+        }
+    }
+    
+    function startMusic(){
+        if(autoPlayStarted) return;
+        autoPlayStarted = true;
+        initAudio();
+        audio.play().then(()=>{
+            isPlaying = true;
+            if(musicBtn){
+                musicBtn.innerHTML = '&#9208;';
+                musicBtn.style.background = 'rgba(201,169,110,0.25)';
+            }
+        }).catch(e=>{
+            console.log('Autoplay blocked, waiting for user interaction');
+            autoPlayStarted = false;
+        });
+    }
+    
+    // Intentar autoplay al cargar
+    window.addEventListener('load', ()=>{
+        setTimeout(startMusic, 1000);
+    });
+    
+    // Autoplay después de cualquier interacción del usuario
+    document.addEventListener('click', function firstClick(){
+        startMusic();
+        document.removeEventListener('click', firstClick);
+    }, { once: false });
+    
+    document.addEventListener('touchstart', function firstTouch(){
+        startMusic();
+        document.removeEventListener('touchstart', firstTouch);
+    }, { once: false });
+    
+    document.addEventListener('scroll', function firstScroll(){
+        startMusic();
+        document.removeEventListener('scroll', firstScroll);
+    }, { once: false });
     
     if(musicBtn){
         musicBtn.addEventListener('click', function(){
-            if(!audio){
-                audio = new Audio(lofiStreams[0]);
-                audio.volume = 0.15; // Volumen bajo
-                audio.crossOrigin = 'anonymous';
-            }
+            initAudio();
             if(isPlaying){
                 audio.pause();
                 isPlaying = false;
-                this.innerHTML = '&#9835;';  // Play icon
+                this.innerHTML = '&#9835;';
                 this.style.background = 'rgba(201,169,110,0.1)';
             } else {
                 audio.play().then(()=>{
                     isPlaying = true;
-                    this.innerHTML = '&#9208;';  // Pause icon
+                    this.innerHTML = '&#9208;';
                     this.style.background = 'rgba(201,169,110,0.25)';
                 }).catch(e=>{
-                    console.log('Audio play failed:', e);
-                    // Fallback: intentar otro stream
-                    audio.src = lofiStreams[1];
-                    audio.play().then(()=>{
-                        isPlaying = true;
-                        this.innerHTML = '&#9208;';
-                        this.style.background = 'rgba(201,169,110,0.25)';
-                    }).catch(e2=>{
-                        console.log('Fallback also failed:', e2);
-                    });
+                    console.log('Play failed:', e);
                 });
             }
         });
+    }
     }
     
     // REFRESH SCROLLTRIGGER después de que carguen las imágenes
